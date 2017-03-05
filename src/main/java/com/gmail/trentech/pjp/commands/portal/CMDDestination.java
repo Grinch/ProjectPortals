@@ -14,6 +14,7 @@ import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.action.TextActions;
 import org.spongepowered.api.text.format.TextColors;
+import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
 
 import com.flowpowered.math.vector.Vector3d;
@@ -83,22 +84,10 @@ public class CMDDestination implements CommandExecutor {
 
 			local.setWorld(world.get());
 
-			if (args.hasAny("x,y,z")) {
-				Vector3d vector3d;
+			if (args.hasAny("location")) {
+				Location location = args.<Location>getOne("location").get();
 
-				String[] coords = args.<String>getOne("x,y,z").get().split(",");
-
-				if (coords[0].equalsIgnoreCase("random")) {
-					vector3d = new Vector3d(0, 0, 0);
-				} else {
-					try {
-						vector3d = new Vector3d(Double.parseDouble(coords[0]), Double.parseDouble(coords[1]), Double.parseDouble(coords[2]));
-					} catch (Exception e) {
-						throw new CommandException(Text.of(TextColors.RED, coords.toString(), " is not valid"), true);
-					}
-				}
-
-				local.setVector3d(vector3d);
+				local.setVector3d(location.getPosition());
 			}
 		}
 

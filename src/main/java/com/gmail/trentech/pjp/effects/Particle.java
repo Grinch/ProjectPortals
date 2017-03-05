@@ -9,6 +9,7 @@ import org.spongepowered.api.Sponge;
 import org.spongepowered.api.effect.particle.ParticleEffect;
 import org.spongepowered.api.effect.particle.ParticleOptions;
 import org.spongepowered.api.effect.particle.ParticleType;
+import org.spongepowered.api.scheduler.Task;
 import org.spongepowered.api.world.Chunk;
 import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
@@ -87,7 +88,7 @@ public class Particle {
 			if (isColorable() && color.isPresent()) {
 				particle = ParticleEffect.builder().type(getType()).option(ParticleOptions.COLOR, color.get().getColor()).build();
 			}
-			
+
 			if (player) {
 				location.getExtent().spawnParticles(particle, location.getPosition().add(random.nextDouble() - .5, random.nextDouble() - .5, random.nextDouble() - .5));
 				location.getExtent().spawnParticles(particle, location.getPosition().add(random.nextDouble() - .5, random.nextDouble() - .5, random.nextDouble() - .5));
@@ -106,17 +107,21 @@ public class Particle {
 		if (getName().equals("PORTAL2")) {
 			Portal portal = Portal.get(locations.get(0), PortalType.PORTAL).get();
 
-			Sponge.getScheduler().createTaskBuilder().intervalTicks(getTime()).name(portal.getName()).execute(t -> {
-				portal.getProperties().get().update(false);
-			}).submit(Main.getPlugin());
+			Sponge.getScheduler().createTaskBuilder().intervalTicks(getTime()).name(portal.getName())
+					.execute(t -> portal.getProperties().get().update(false)).submit(Main.getPlugin());
 		} else {
+			// Cancel existing tasks to prevent particle effect stacking
+			for (Task task : Sponge.getScheduler().getTasksByName(name)) {
+				task.cancel();
+			}
+
 			Sponge.getScheduler().createTaskBuilder().interval(getTime(), TimeUnit.MILLISECONDS).name(name).execute(t -> {
 				ParticleEffect particle = ParticleEffect.builder().type(getType()).build();
 
 				for (Location<World> location : locations) {
 					Optional<Chunk> optionalChunk = location.getExtent().getChunk(location.getChunkPosition());
-					
-					if(optionalChunk.isPresent() && optionalChunk.get().isLoaded()) {
+
+					if (optionalChunk.isPresent() && optionalChunk.get().isLoaded()) {
 						if (isColorable() && color.isPresent()) {
 							particle = ParticleEffect.builder().type(getType()).option(ParticleOptions.COLOR, color.get().getColor()).build();
 						}

@@ -15,5 +15,4 @@ public class CMDPortal implements CommandExecutor {
 		Help.executeList(src, Help.get("portal").get().getChildren());
 		return CommandResult.success();
 	}
-
 }

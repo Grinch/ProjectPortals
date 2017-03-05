@@ -100,7 +100,7 @@ public class Properties implements DataSerializable {
 		Sponge.getScheduler().createTaskBuilder().delayTicks(5).execute(c -> {
 			for (Location<World> location : getFill()) {
 				Optional<Chunk> optionalChunk = location.getExtent().getChunk(location.getChunkPosition());
-				
+
 				if(optionalChunk.isPresent() && optionalChunk.get().isLoaded()) {
 					if (reset) {
 						player.resetBlockChange(location.getBlockPosition());
@@ -115,9 +115,7 @@ public class Properties implements DataSerializable {
 	public void update(boolean reset) {
 		World world = getFrame().get(0).getExtent();
 
-		Predicate<Entity> filter = e -> {
-			return e.getType().equals(EntityTypes.PLAYER);
-		};
+		Predicate<Entity> filter = e -> e.getType().equals(EntityTypes.PLAYER);
 
 		for (Entity entity : world.getEntities(filter)) {
 			updateClient((Player) entity, reset);
@@ -192,9 +190,7 @@ public class Properties implements DataSerializable {
 	public DataContainer toContainer() {
 		DataContainer container = new MemoryDataContainer().set(PARTICLE, particle.getName());
 
-		if (color.isPresent()) {
-			container.set(COLOR, color.get().getName());
-		}
+		color.ifPresent(particleColor -> container.set(COLOR, particleColor.getName()));
 
 		List<String> frame = new ArrayList<>();
 
