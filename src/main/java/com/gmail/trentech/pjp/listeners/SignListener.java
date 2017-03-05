@@ -1,9 +1,13 @@
 package com.gmail.trentech.pjp.listeners;
 
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-
+import com.gmail.trentech.pjp.data.Keys;
+import com.gmail.trentech.pjp.data.mutable.SignPortalData;
+import com.gmail.trentech.pjp.effects.Particle;
+import com.gmail.trentech.pjp.effects.Particles;
+import com.gmail.trentech.pjp.portal.Portal;
+import com.gmail.trentech.pjp.utils.ConfigManager;
+import com.gmail.trentech.pjp.utils.Teleport;
+import com.gmail.trentech.pjp.utils.Timings;
 import org.spongepowered.api.block.BlockSnapshot;
 import org.spongepowered.api.block.BlockType;
 import org.spongepowered.api.block.BlockTypes;
@@ -19,122 +23,119 @@ import org.spongepowered.api.text.format.TextColors;
 import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
 
-import com.gmail.trentech.pjp.data.Keys;
-import com.gmail.trentech.pjp.data.mutable.SignPortalData;
-import com.gmail.trentech.pjp.effects.Particle;
-import com.gmail.trentech.pjp.effects.Particles;
-import com.gmail.trentech.pjp.portal.Portal;
-import com.gmail.trentech.pjp.utils.ConfigManager;
-import com.gmail.trentech.pjp.utils.Teleport;
-import com.gmail.trentech.pjp.utils.Timings;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class SignListener {
 
-	public static ConcurrentHashMap<UUID, Portal> builders = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<UUID, Portal> builders = new ConcurrentHashMap<>();
 
-	private Timings timings;
+    private Timings timings;
 
-	public SignListener(Timings timings) {
-		this.timings = timings;
-	}
+    public SignListener(Timings timings) {
+        this.timings = timings;
+    }
 
-	@Listener
-	public void onChangeSignEvent(ChangeSignEvent event, @Root Player player) {
-		timings.onChangeSignEvent().startTiming();
+    @Listener
+    public void onChangeSignEvent(ChangeSignEvent event, @Root Player player) {
+        timings.onChangeSignEvent().startTiming();
 
-		try {
-			if (!builders.containsKey(player.getUniqueId())) {
-				return;
-			}
-			Portal portal = builders.get(player.getUniqueId());
+        try {
+            if (!builders.containsKey(player.getUniqueId())) {
+                return;
+            }
+            Portal portal = builders.get(player.getUniqueId());
 
-			if (!player.hasPermission("pjp.sign.place")) {
-				player.sendMessage(Text.of(TextColors.DARK_RED, "You do not have permission to place sign portals"));
-				event.setCancelled(true);
-				return;
-			}
+            if (!player.hasPermission("pjp.sign.place")) {
+                player.sendMessage(Text.of(TextColors.DARK_RED, "You do not have permission to place sign portals"));
+                event.setCancelled(true);
+                return;
+            }
 
-			event.getTargetTile().offer(new SignPortalData(portal));
+            event.getTargetTile().offer(new SignPortalData(portal));
 
-			Particle particle = Particles.getDefaultEffect("creation");
-			particle.spawnParticle(event.getTargetTile().getLocation(), false, Particles.getDefaultColor("creation", particle.isColorable()));
+            Particle particle = Particles.getDefaultEffect("creation");
+            particle.spawnParticle(event.getTargetTile().getLocation(), false, Particles.getDefaultColor("creation", particle.isColorable()));
 
-			player.sendMessage(Text.of(TextColors.DARK_GREEN, "New sign portal created"));
+            player.sendMessage(Text.of(TextColors.DARK_GREEN, "New sign portal created"));
 
-			builders.remove(player.getUniqueId());
-		} finally {
-			timings.onChangeSignEvent().stopTiming();
-		}
-	}
+            builders.remove(player.getUniqueId());
+        } finally {
+            timings.onChangeSignEvent().stopTiming();
+        }
+    }
 
-	@Listener
-	public void onInteractBlockEventSecondary(InteractBlockEvent.Secondary event, @Root Player player) {
-		timings.onChangeSignEvent().startTiming();
+    @Listener
+    public void onInteractBlockEventSecondary(InteractBlockEvent.Secondary event, @Root Player player) {
+        timings.onChangeSignEvent().startTiming();
 
-		try {
-			BlockSnapshot snapshot = event.getTargetBlock();
-			if (!(snapshot.getState().getType().equals(BlockTypes.WALL_SIGN) || snapshot.getState().getType().equals(BlockTypes.STANDING_SIGN))) {
-				return;
-			}
+        try {
+            BlockSnapshot snapshot = event.getTargetBlock();
+            if (!(snapshot.getState().getType().equals(BlockTypes.WALL_SIGN) || snapshot.getState().getType().equals(BlockTypes.STANDING_SIGN))) {
+                return;
+            }
 
-			Location<World> location = snapshot.getLocation().get();
+            Location<World> location = snapshot.getLocation().get();
 
-			Optional<Portal> optionalPortal = location.get(Keys.PORTAL);
+            Optional<Portal> optionalPortal = location.get(Keys.PORTAL);
 
-			if (!optionalPortal.isPresent()) {
-				return;
-			}
-			Portal portal = optionalPortal.get();
+            if (!optionalPortal.isPresent()) {
+                return;
+            }
+            Portal portal = optionalPortal.get();
 
-			if (ConfigManager.get().getConfig().getNode("options", "advanced_permissions").getBoolean()) {
-				if (!player.hasPermission("pjp.sign." + location.getExtent().getName() + "_" + location.getBlockX() + "_" + location.getBlockY() + "_" + location.getBlockZ())) {
-					player.sendMessage(Text.of(TextColors.DARK_RED, "You do not have permission to use this sign portal"));
-					event.setCancelled(true);
-					return;
-				}
-			} else {
-				if (!player.hasPermission("pjp.sign.interact")) {
-					player.sendMessage(Text.of(TextColors.DARK_RED, "You do not have permission to interact with sign portals"));
-					event.setCancelled(true);
-					return;
-				}
-			}
+            if (ConfigManager.get().getConfig().getNode("options", "advanced_permissions").getBoolean()) {
+                if (!player.hasPermission(
+                        "pjp.sign." + location.getExtent().getName() + "_" + location.getBlockX() + "_" + location.getBlockY() + "_" + location
+                                .getBlockZ())) {
+                    player.sendMessage(Text.of(TextColors.DARK_RED, "You do not have permission to use this sign portal"));
+                    event.setCancelled(true);
+                    return;
+                }
+            } else {
+                if (!player.hasPermission("pjp.sign.interact")) {
+                    player.sendMessage(Text.of(TextColors.DARK_RED, "You do not have permission to interact with sign portals"));
+                    event.setCancelled(true);
+                    return;
+                }
+            }
 
-			Teleport.teleport(player, portal);
-		} finally {
-			timings.onChangeSignEvent().stopTiming();
-		}
-	}
+            Teleport.teleport(player, portal);
+        } finally {
+            timings.onChangeSignEvent().stopTiming();
+        }
+    }
 
-	@Listener
-	public void onChangeBlockEventBreak(ChangeBlockEvent.Break event, @Root Player player) {
-		timings.onChangeBlockEventBreak().startTiming();
+    @Listener
+    public void onChangeBlockEventBreak(ChangeBlockEvent.Break event, @Root Player player) {
+        timings.onChangeBlockEventBreak().startTiming();
 
-		try {
-			for (Transaction<BlockSnapshot> blockTransaction : event.getTransactions()) {
-				BlockSnapshot snapshot = blockTransaction.getOriginal();
+        try {
+            for (Transaction<BlockSnapshot> blockTransaction : event.getTransactions()) {
+                BlockSnapshot snapshot = blockTransaction.getOriginal();
 
-				BlockType blockType = snapshot.getState().getType();
+                BlockType blockType = snapshot.getState().getType();
 
-				if (!blockType.equals(BlockTypes.WALL_SIGN) && !blockType.equals(BlockTypes.STANDING_SIGN)) {
-					continue;
-				}
+                if (!blockType.equals(BlockTypes.WALL_SIGN) && !blockType.equals(BlockTypes.STANDING_SIGN)) {
+                    continue;
+                }
 
-				Optional<Portal> optionalPortal = snapshot.get(Keys.PORTAL);
+                Optional<Portal> optionalPortal = snapshot.get(Keys.PORTAL);
 
-				if (!optionalPortal.isPresent()) {
-					continue;
-				}
+                if (!optionalPortal.isPresent()) {
+                    continue;
+                }
 
-				if (!player.hasPermission("pjp.sign.break")) {
-					player.sendMessage(Text.of(TextColors.DARK_RED, "You do not have permission to break sign portal"));
-					event.setCancelled(true);
-				} else {
-					player.sendMessage(Text.of(TextColors.DARK_GREEN, "Broke sign portal"));
-				}
-			}
-		} finally {
-			timings.onChangeBlockEventBreak().stopTiming();
-		}
-	}
+                if (!player.hasPermission("pjp.sign.break")) {
+                    player.sendMessage(Text.of(TextColors.DARK_RED, "You do not have permission to break sign portal"));
+                    event.setCancelled(true);
+                } else {
+                    player.sendMessage(Text.of(TextColors.DARK_GREEN, "Broke sign portal"));
+                }
+            }
+        } finally {
+            timings.onChangeBlockEventBreak().stopTiming();
+        }
+    }
 }

@@ -5,11 +5,11 @@ import static com.gmail.trentech.pjp.data.DataQueries.FILL;
 import static com.gmail.trentech.pjp.data.DataQueries.FRAME;
 import static com.gmail.trentech.pjp.data.DataQueries.PARTICLE;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Predicate;
-
+import com.flowpowered.math.vector.Vector3i;
+import com.gmail.trentech.pjp.Main;
+import com.gmail.trentech.pjp.effects.Particle;
+import com.gmail.trentech.pjp.effects.ParticleColor;
+import com.gmail.trentech.pjp.effects.Particles;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.block.BlockState;
 import org.spongepowered.api.block.BlockTypes;
@@ -29,216 +29,227 @@ import org.spongepowered.api.world.Chunk;
 import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
 
-import com.flowpowered.math.vector.Vector3i;
-import com.gmail.trentech.pjp.Main;
-import com.gmail.trentech.pjp.effects.Particle;
-import com.gmail.trentech.pjp.effects.ParticleColor;
-import com.gmail.trentech.pjp.effects.Particles;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
 
 public class Properties implements DataSerializable {
 
-	private List<Location<World>> frame = new ArrayList<>();
-	private List<Location<World>> fill = new ArrayList<>();
-	private Particle particle;
-	private Optional<ParticleColor> color;
+    private List<Location<World>> frame = new ArrayList<>();
+    private List<Location<World>> fill = new ArrayList<>();
+    private Particle particle;
+    private Optional<ParticleColor> color;
 
-	public Properties(Particle particle, Optional<ParticleColor> color) {
-		this.particle = particle;
-		this.color = color;
-	}
+    public Properties(Particle particle, Optional<ParticleColor> color) {
+        this.particle = particle;
+        this.color = color;
+    }
 
-	public Properties(List<Location<World>> frame, List<Location<World>> fill, Particle particle, Optional<ParticleColor> color) {
-		this.frame = frame;
-		this.fill = fill;
-		this.particle = particle;
-		this.color = color;
-	}
+    public Properties(List<Location<World>> frame, List<Location<World>> fill, Particle particle, Optional<ParticleColor> color) {
+        this.frame = frame;
+        this.fill = fill;
+        this.particle = particle;
+        this.color = color;
+    }
 
-	public Particle getParticle() {
-		return particle;
-	}
+    public Particle getParticle() {
+        return particle;
+    }
 
-	public void setParticle(Particle particle) {
-		this.particle = particle;
-	}
+    public void setParticle(Particle particle) {
+        this.particle = particle;
+    }
 
-	public Optional<ParticleColor> getParticleColor() {
-		return color;
-	}
+    public Optional<ParticleColor> getParticleColor() {
+        return color;
+    }
 
-	public void setParticleColor(Optional<ParticleColor> color) {
-		this.color = color;
-	}
+    public void setParticleColor(Optional<ParticleColor> color) {
+        this.color = color;
+    }
 
-	public List<Location<World>> getFrame() {
-		return frame;
-	}
+    public List<Location<World>> getFrame() {
+        return frame;
+    }
 
-	public void addFrame(Location<World> location) {
-		frame.add(location);
-	}
+    public void addFrame(Location<World> location) {
+        frame.add(location);
+    }
 
-	public void removeFrame(Location<World> location) {
-		frame.remove(location);
-	}
+    public void removeFrame(Location<World> location) {
+        frame.remove(location);
+    }
 
-	public List<Location<World>> getFill() {
-		return fill;
-	}
+    public List<Location<World>> getFill() {
+        return fill;
+    }
 
-	public void addFill(Location<World> location) {
-		fill.add(location);
-	}
+    public void addFill(Location<World> location) {
+        fill.add(location);
+    }
 
-	public void removeFill(Location<World> location) {
-		fill.remove(location);
-	}
+    public void removeFill(Location<World> location) {
+        fill.remove(location);
+    }
 
-	private void updateClient(Player player, boolean reset) {
-		BlockState state = getBlock();
+    private void updateClient(Player player, boolean reset) {
+        BlockState state = getBlock();
 
-		Sponge.getScheduler().createTaskBuilder().delayTicks(5).execute(c -> {
-			for (Location<World> location : getFill()) {
-				Optional<Chunk> optionalChunk = location.getExtent().getChunk(location.getChunkPosition());
+        Sponge.getScheduler().createTaskBuilder().delayTicks(5).execute(c -> {
+            for (Location<World> location : getFill()) {
+                Optional<Chunk> optionalChunk = location.getExtent().getChunk(location.getChunkPosition());
 
-				if(optionalChunk.isPresent() && optionalChunk.get().isLoaded()) {
-					if (reset) {
-						player.resetBlockChange(location.getBlockPosition());
-					} else {
-						player.sendBlockChange(location.getBlockPosition(), state);
-					}
-				}
-			}
-		}).submit(Main.getPlugin());
-	}
+                if (optionalChunk.isPresent() && optionalChunk.get().isLoaded()) {
+                    if (reset) {
+                        player.resetBlockChange(location.getBlockPosition());
+                    } else {
+                        player.sendBlockChange(location.getBlockPosition(), state);
+                    }
+                }
+            }
+        }).submit(Main.getPlugin());
+    }
 
-	public void update(boolean reset) {
-		World world = getFrame().get(0).getExtent();
+    public void update(boolean reset) {
+        World world = getFrame().get(0).getExtent();
 
-		Predicate<Entity> filter = e -> e.getType().equals(EntityTypes.PLAYER);
+        Predicate<Entity> filter = e -> e.getType().equals(EntityTypes.PLAYER);
 
-		for (Entity entity : world.getEntities(filter)) {
-			updateClient((Player) entity, reset);
-		}
-	}
+        for (Entity entity : world.getEntities(filter)) {
+            updateClient((Player) entity, reset);
+        }
+    }
 
-	private BlockState getBlock() {
-		BlockState blockState = BlockTypes.PORTAL.getDefaultState().with(Keys.AXIS, Axis.Z).get();
+    private BlockState getBlock() {
+        BlockState blockState = BlockTypes.PORTAL.getDefaultState().with(Keys.AXIS, Axis.Z).get();
 
-		List<Vector3i> frameV = new ArrayList<>();
+        List<Vector3i> frameV = new ArrayList<>();
 
-		for (Location<World> location : getFrame()) {
-			frameV.add(location.getBlockPosition());
-		}
+        for (Location<World> location : getFrame()) {
+            frameV.add(location.getBlockPosition());
+        }
 
-		for (Location<World> location : getFill()) {
-			Location<World> east = location.getRelative(Direction.EAST);
-			Location<World> west = location.getRelative(Direction.WEST);
-			Location<World> north = location.getRelative(Direction.NORTH);
-			Location<World> south = location.getRelative(Direction.SOUTH);
-			Location<World> up = location.getRelative(Direction.UP);
-			Location<World> down = location.getRelative(Direction.DOWN);
+        for (Location<World> location : getFill()) {
+            Location<World> east = location.getRelative(Direction.EAST);
+            Location<World> west = location.getRelative(Direction.WEST);
+            Location<World> north = location.getRelative(Direction.NORTH);
+            Location<World> south = location.getRelative(Direction.SOUTH);
+            Location<World> up = location.getRelative(Direction.UP);
+            Location<World> down = location.getRelative(Direction.DOWN);
 
-			if (frameV.contains(east.getBlockPosition()) && frameV.contains(up.getBlockPosition()) && !frameV.contains(north.getBlockPosition()) && !frameV.contains(south.getBlockPosition())) {
-				blockState = BlockTypes.PORTAL.getDefaultState().with(Keys.AXIS, Axis.X).get();
-				break;
-			} else if (frameV.contains(west.getBlockPosition()) && frameV.contains(up.getBlockPosition()) && !frameV.contains(north.getBlockPosition()) && !frameV.contains(south.getBlockPosition())) {
-				blockState = BlockTypes.PORTAL.getDefaultState().with(Keys.AXIS, Axis.X).get();
-				break;
-			} else if (frameV.contains(east.getBlockPosition()) && frameV.contains(down.getBlockPosition()) && !frameV.contains(north.getBlockPosition()) && !frameV.contains(south.getBlockPosition())) {
-				blockState = BlockTypes.PORTAL.getDefaultState().with(Keys.AXIS, Axis.X).get();
-				break;
-			} else if (frameV.contains(west.getBlockPosition()) && frameV.contains(down.getBlockPosition()) && !frameV.contains(north.getBlockPosition()) && !frameV.contains(south.getBlockPosition())) {
-				blockState = BlockTypes.PORTAL.getDefaultState().with(Keys.AXIS, Axis.X).get();
-				break;
-			} else if (frameV.contains(north.getBlockPosition()) && frameV.contains(up.getBlockPosition()) && !frameV.contains(east.getBlockPosition()) && !frameV.contains(west.getBlockPosition())) {
-				blockState = BlockTypes.PORTAL.getDefaultState().with(Keys.AXIS, Axis.Z).get();
-				break;
-			} else if (frameV.contains(south.getBlockPosition()) && frameV.contains(up.getBlockPosition()) && !frameV.contains(east.getBlockPosition()) && !frameV.contains(west.getBlockPosition())) {
-				blockState = BlockTypes.PORTAL.getDefaultState().with(Keys.AXIS, Axis.Z).get();
-				break;
-			} else if (frameV.contains(north.getBlockPosition()) && frameV.contains(down.getBlockPosition()) && !frameV.contains(east.getBlockPosition()) && !frameV.contains(west.getBlockPosition())) {
-				blockState = BlockTypes.PORTAL.getDefaultState().with(Keys.AXIS, Axis.Z).get();
-				break;
-			} else if (frameV.contains(south.getBlockPosition()) && frameV.contains(down.getBlockPosition()) && !frameV.contains(east.getBlockPosition()) && !frameV.contains(west.getBlockPosition())) {
-				blockState = BlockTypes.PORTAL.getDefaultState().with(Keys.AXIS, Axis.Z).get();
-				break;
-			} else if (frameV.contains(east.getBlockPosition()) && frameV.contains(north.getBlockPosition()) && !frameV.contains(up.getBlockPosition()) && !frameV.contains(down.getBlockPosition())) {
-				blockState = BlockTypes.END_PORTAL.getDefaultState();
-				break;
-			} else if (frameV.contains(west.getBlockPosition()) && frameV.contains(north.getBlockPosition()) && !frameV.contains(up.getBlockPosition()) && !frameV.contains(down.getBlockPosition())) {
-				blockState = BlockTypes.END_PORTAL.getDefaultState();
-				break;
-			} else if (frameV.contains(east.getBlockPosition()) && frameV.contains(south.getBlockPosition()) && !frameV.contains(up.getBlockPosition()) && !frameV.contains(down.getBlockPosition())) {
-				blockState = BlockTypes.END_PORTAL.getDefaultState();
-				break;
-			} else if (frameV.contains(west.getBlockPosition()) && frameV.contains(south.getBlockPosition()) && !frameV.contains(up.getBlockPosition()) && !frameV.contains(down.getBlockPosition())) {
-				blockState = BlockTypes.END_PORTAL.getDefaultState();
-				break;
-			}
-		}
+            if (frameV.contains(east.getBlockPosition()) && frameV.contains(up.getBlockPosition()) && !frameV.contains(north.getBlockPosition())
+                    && !frameV.contains(south.getBlockPosition())) {
+                blockState = BlockTypes.PORTAL.getDefaultState().with(Keys.AXIS, Axis.X).get();
+                break;
+            } else if (frameV.contains(west.getBlockPosition()) && frameV.contains(up.getBlockPosition()) && !frameV
+                    .contains(north.getBlockPosition()) && !frameV.contains(south.getBlockPosition())) {
+                blockState = BlockTypes.PORTAL.getDefaultState().with(Keys.AXIS, Axis.X).get();
+                break;
+            } else if (frameV.contains(east.getBlockPosition()) && frameV.contains(down.getBlockPosition()) && !frameV
+                    .contains(north.getBlockPosition()) && !frameV.contains(south.getBlockPosition())) {
+                blockState = BlockTypes.PORTAL.getDefaultState().with(Keys.AXIS, Axis.X).get();
+                break;
+            } else if (frameV.contains(west.getBlockPosition()) && frameV.contains(down.getBlockPosition()) && !frameV
+                    .contains(north.getBlockPosition()) && !frameV.contains(south.getBlockPosition())) {
+                blockState = BlockTypes.PORTAL.getDefaultState().with(Keys.AXIS, Axis.X).get();
+                break;
+            } else if (frameV.contains(north.getBlockPosition()) && frameV.contains(up.getBlockPosition()) && !frameV
+                    .contains(east.getBlockPosition()) && !frameV.contains(west.getBlockPosition())) {
+                blockState = BlockTypes.PORTAL.getDefaultState().with(Keys.AXIS, Axis.Z).get();
+                break;
+            } else if (frameV.contains(south.getBlockPosition()) && frameV.contains(up.getBlockPosition()) && !frameV
+                    .contains(east.getBlockPosition()) && !frameV.contains(west.getBlockPosition())) {
+                blockState = BlockTypes.PORTAL.getDefaultState().with(Keys.AXIS, Axis.Z).get();
+                break;
+            } else if (frameV.contains(north.getBlockPosition()) && frameV.contains(down.getBlockPosition()) && !frameV
+                    .contains(east.getBlockPosition()) && !frameV.contains(west.getBlockPosition())) {
+                blockState = BlockTypes.PORTAL.getDefaultState().with(Keys.AXIS, Axis.Z).get();
+                break;
+            } else if (frameV.contains(south.getBlockPosition()) && frameV.contains(down.getBlockPosition()) && !frameV
+                    .contains(east.getBlockPosition()) && !frameV.contains(west.getBlockPosition())) {
+                blockState = BlockTypes.PORTAL.getDefaultState().with(Keys.AXIS, Axis.Z).get();
+                break;
+            } else if (frameV.contains(east.getBlockPosition()) && frameV.contains(north.getBlockPosition()) && !frameV
+                    .contains(up.getBlockPosition()) && !frameV.contains(down.getBlockPosition())) {
+                blockState = BlockTypes.END_PORTAL.getDefaultState();
+                break;
+            } else if (frameV.contains(west.getBlockPosition()) && frameV.contains(north.getBlockPosition()) && !frameV
+                    .contains(up.getBlockPosition()) && !frameV.contains(down.getBlockPosition())) {
+                blockState = BlockTypes.END_PORTAL.getDefaultState();
+                break;
+            } else if (frameV.contains(east.getBlockPosition()) && frameV.contains(south.getBlockPosition()) && !frameV
+                    .contains(up.getBlockPosition()) && !frameV.contains(down.getBlockPosition())) {
+                blockState = BlockTypes.END_PORTAL.getDefaultState();
+                break;
+            } else if (frameV.contains(west.getBlockPosition()) && frameV.contains(south.getBlockPosition()) && !frameV
+                    .contains(up.getBlockPosition()) && !frameV.contains(down.getBlockPosition())) {
+                blockState = BlockTypes.END_PORTAL.getDefaultState();
+                break;
+            }
+        }
 
-		return blockState;
-	}
+        return blockState;
+    }
 
-	@Override
-	public int getContentVersion() {
-		return 0;
-	}
+    @Override
+    public int getContentVersion() {
+        return 0;
+    }
 
-	@Override
-	public DataContainer toContainer() {
-		DataContainer container = new MemoryDataContainer().set(PARTICLE, particle.getName());
+    @Override
+    public DataContainer toContainer() {
+        DataContainer container = new MemoryDataContainer().set(PARTICLE, particle.getName());
 
-		color.ifPresent(particleColor -> container.set(COLOR, particleColor.getName()));
+        color.ifPresent(particleColor -> container.set(COLOR, particleColor.getName()));
 
-		List<String> frame = new ArrayList<>();
+        List<String> frame = new ArrayList<>();
 
-		for (Location<World> location : this.frame) {
-			frame.add(LocationSerializable.serialize(location));
-		}
-		container.set(FRAME, frame);
+        for (Location<World> location : this.frame) {
+            frame.add(LocationSerializable.serialize(location));
+        }
+        container.set(FRAME, frame);
 
-		List<String> fill = new ArrayList<>();
+        List<String> fill = new ArrayList<>();
 
-		for (Location<World> location : this.fill) {
-			fill.add(LocationSerializable.serialize(location));
-		}
-		container.set(FILL, fill);
+        for (Location<World> location : this.fill) {
+            fill.add(LocationSerializable.serialize(location));
+        }
+        container.set(FILL, fill);
 
-		return container;
-	}
+        return container;
+    }
 
-	public static class Builder extends AbstractDataBuilder<Properties> {
+    public static class Builder extends AbstractDataBuilder<Properties> {
 
-		public Builder() {
-			super(Properties.class, 0);
-		}
+        public Builder() {
+            super(Properties.class, 0);
+        }
 
-		@Override
-		protected Optional<Properties> buildContent(DataView container) throws InvalidDataException {
-			if (container.contains(FRAME, FILL, PARTICLE)) {
-				Particle particle = Particles.get(container.getString(PARTICLE).get()).get();
-				Optional<ParticleColor> color = Optional.empty();
-				List<Location<World>> frame = new ArrayList<>();
-				List<Location<World>> fill = new ArrayList<>();
+        @Override
+        protected Optional<Properties> buildContent(DataView container) throws InvalidDataException {
+            if (container.contains(FRAME, FILL, PARTICLE)) {
+                Particle particle = Particles.get(container.getString(PARTICLE).get()).get();
+                Optional<ParticleColor> color = Optional.empty();
+                List<Location<World>> frame = new ArrayList<>();
+                List<Location<World>> fill = new ArrayList<>();
 
-				if (container.contains(COLOR)) {
-					color = ParticleColor.get(container.getString(COLOR).get());
-				}
+                if (container.contains(COLOR)) {
+                    color = ParticleColor.get(container.getString(COLOR).get());
+                }
 
-				for (String loc : container.getStringList(FRAME).get()) {
-					frame.add(LocationSerializable.deserialize(loc));
-				}
+                for (String loc : container.getStringList(FRAME).get()) {
+                    frame.add(LocationSerializable.deserialize(loc));
+                }
 
-				for (String loc : container.getStringList(FILL).get()) {
-					fill.add(LocationSerializable.deserialize(loc));
-				}
+                for (String loc : container.getStringList(FILL).get()) {
+                    fill.add(LocationSerializable.deserialize(loc));
+                }
 
-				return Optional.of(new Properties(frame, fill, particle, color));
-			}
+                return Optional.of(new Properties(frame, fill, particle, color));
+            }
 
-			return Optional.empty();
-		}
-	}
+            return Optional.empty();
+        }
+    }
 }

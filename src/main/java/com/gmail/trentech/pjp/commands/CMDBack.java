@@ -1,9 +1,9 @@
 package com.gmail.trentech.pjp.commands;
 
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
-
+import com.gmail.trentech.pjp.events.TeleportEvent;
+import com.gmail.trentech.pjp.events.TeleportEvent.Local;
+import com.gmail.trentech.pjp.portal.Portal;
+import com.gmail.trentech.pjp.portal.Portal.PortalType;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.command.CommandException;
 import org.spongepowered.api.command.CommandResult;
@@ -19,49 +19,50 @@ import org.spongepowered.api.text.format.TextColors;
 import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
 
-import com.gmail.trentech.pjp.events.TeleportEvent;
-import com.gmail.trentech.pjp.events.TeleportEvent.Local;
-import com.gmail.trentech.pjp.portal.Portal;
-import com.gmail.trentech.pjp.portal.Portal.PortalType;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class CMDBack implements CommandExecutor {
 
-	public CommandSpec cmdBack = CommandSpec.builder().description(Text.of("Send player to last place they were")).permission("pjp.cmd.back").executor(this).build();
+    public CommandSpec cmdBack =
+            CommandSpec.builder().description(Text.of("Send player to last place they were")).permission("pjp.cmd.back").executor(this).build();
 
-	public static ConcurrentHashMap<Player, Location<World>> players = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<Player, Location<World>> players = new ConcurrentHashMap<>();
 
-	@Override
-	public CommandResult execute(CommandSource src, CommandContext args) throws CommandException {
-		if (!(src instanceof Player)) {
-			throw new CommandException(Text.of(TextColors.RED, "Must be a player"));
-		}
-		Player player = (Player) src;
+    @Override
+    public CommandResult execute(CommandSource src, CommandContext args) throws CommandException {
+        if (!(src instanceof Player)) {
+            throw new CommandException(Text.of(TextColors.RED, "Must be a player"));
+        }
+        Player player = (Player) src;
 
-		if (players.get(player) == null) {
-			throw new CommandException(Text.of(TextColors.RED, "No position to teleport to"));
-		}
-		Location<World> spawnLocation = players.get(player);
+        if (players.get(player) == null) {
+            throw new CommandException(Text.of(TextColors.RED, "No position to teleport to"));
+        }
+        Location<World> spawnLocation = players.get(player);
 
-		while (Portal.get(spawnLocation, PortalType.PORTAL).isPresent() || Portal.get(spawnLocation, PortalType.DOOR).isPresent()) {
-			ThreadLocalRandom random = ThreadLocalRandom.current();
+        while (Portal.get(spawnLocation, PortalType.PORTAL).isPresent() || Portal.get(spawnLocation, PortalType.DOOR).isPresent()) {
+            ThreadLocalRandom random = ThreadLocalRandom.current();
 
-			int x = (random.nextInt(5 * 2) - 5) + spawnLocation.getBlockX();
-			int z = (random.nextInt(5 * 2) - 5) + spawnLocation.getBlockZ();
+            int x = (random.nextInt(5 * 2) - 5) + spawnLocation.getBlockX();
+            int z = (random.nextInt(5 * 2) - 5) + spawnLocation.getBlockZ();
 
-			Optional<Location<World>> optionalLocation = Sponge.getGame().getTeleportHelper().getSafeLocation(spawnLocation.getExtent().getLocation(x, spawnLocation.getBlockY(), z));
+            Optional<Location<World>> optionalLocation =
+                    Sponge.getGame().getTeleportHelper().getSafeLocation(spawnLocation.getExtent().getLocation(x, spawnLocation.getBlockY(), z));
 
-			if (optionalLocation.isPresent()) {
-				spawnLocation = optionalLocation.get();
-			}
-		}
+            if (optionalLocation.isPresent()) {
+                spawnLocation = optionalLocation.get();
+            }
+        }
 
-		Local teleportEvent = new TeleportEvent.Local(player, player.getLocation(), spawnLocation, 0, Cause.of(NamedCause.source("back")));
+        Local teleportEvent = new TeleportEvent.Local(player, player.getLocation(), spawnLocation, 0, Cause.of(NamedCause.source("back")));
 
-		if (!Sponge.getEventManager().post(teleportEvent)) {
-			spawnLocation = teleportEvent.getDestination();
-			player.setLocation(spawnLocation);
-		}
+        if (!Sponge.getEventManager().post(teleportEvent)) {
+            spawnLocation = teleportEvent.getDestination();
+            player.setLocation(spawnLocation);
+        }
 
-		return CommandResult.success();
-	}
+        return CommandResult.success();
+    }
 }

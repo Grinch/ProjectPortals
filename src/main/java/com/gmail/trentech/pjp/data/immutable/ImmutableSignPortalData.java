@@ -2,48 +2,47 @@ package com.gmail.trentech.pjp.data.immutable;
 
 import static com.gmail.trentech.pjp.data.Keys.PORTAL;
 
-import java.util.Optional;
-
+import com.gmail.trentech.pjp.data.mutable.SignPortalData;
+import com.gmail.trentech.pjp.portal.Portal;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.data.key.Key;
 import org.spongepowered.api.data.manipulator.immutable.common.AbstractImmutableSingleData;
 import org.spongepowered.api.data.value.BaseValue;
 import org.spongepowered.api.data.value.immutable.ImmutableValue;
 
-import com.gmail.trentech.pjp.data.mutable.SignPortalData;
-import com.gmail.trentech.pjp.portal.Portal;
+import java.util.Optional;
 
 public class ImmutableSignPortalData extends AbstractImmutableSingleData<Portal, ImmutableSignPortalData, SignPortalData> {
 
-	public ImmutableSignPortalData(Portal value) {
-		super(value, PORTAL);
-	}
+    public ImmutableSignPortalData(Portal value) {
+        super(value, PORTAL);
+    }
 
-	public ImmutableValue<Portal> sign() {
-		return Sponge.getRegistry().getValueFactory().createValue(PORTAL, getValue(), getValue()).asImmutable();
-	}
+    public ImmutableValue<Portal> sign() {
+        return Sponge.getRegistry().getValueFactory().createValue(PORTAL, getValue(), getValue()).asImmutable();
+    }
 
-	@Override
-	public <E> Optional<ImmutableSignPortalData> with(Key<? extends BaseValue<E>> key, E value) {
-		if (this.supports(key)) {
-			return Optional.of(asMutable().set(key, value).asImmutable());
-		} else {
-			return Optional.empty();
-		}
-	}
+    @Override
+    public <E> Optional<ImmutableSignPortalData> with(Key<? extends BaseValue<E>> key, E value) {
+        if (this.supports(key)) {
+            return Optional.of(asMutable().set(key, value).asImmutable());
+        } else {
+            return Optional.empty();
+        }
+    }
 
-	@Override
-	public int getContentVersion() {
-		return 0;
-	}
+    @Override
+    public int getContentVersion() {
+        return 0;
+    }
 
-	@Override
-	protected ImmutableValue<?> getValueGetter() {
-		return Sponge.getRegistry().getValueFactory().createValue(PORTAL, getValue()).asImmutable();
-	}
+    @Override
+    protected ImmutableValue<?> getValueGetter() {
+        return Sponge.getRegistry().getValueFactory().createValue(PORTAL, getValue()).asImmutable();
+    }
 
-	@Override
-	public SignPortalData asMutable() {
-		return new SignPortalData(this.getValue());
-	}
+    @Override
+    public SignPortalData asMutable() {
+        return new SignPortalData(this.getValue());
+    }
 }

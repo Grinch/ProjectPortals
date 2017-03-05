@@ -1,12 +1,10 @@
 package com.gmail.trentech.pjp.utils;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
-
+import com.flowpowered.math.vector.Vector3d;
+import com.gmail.trentech.pjp.events.TeleportEvent;
+import com.gmail.trentech.pjp.events.TeleportEvent.Local;
+import com.gmail.trentech.pjp.portal.Portal;
+import flavor.pie.spongycord.SpongyCord;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.block.BlockType;
 import org.spongepowered.api.block.BlockTypes;
@@ -23,153 +21,158 @@ import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.TeleportHelper;
 import org.spongepowered.api.world.World;
 
-import com.flowpowered.math.vector.Vector3d;
-import com.gmail.trentech.pjp.events.TeleportEvent;
-import com.gmail.trentech.pjp.events.TeleportEvent.Local;
-import com.gmail.trentech.pjp.portal.Portal;
-
-import flavor.pie.spongycord.SpongyCord;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 public class Teleport {
 
-	private static ThreadLocalRandom random = ThreadLocalRandom.current();
+    private static ThreadLocalRandom random = ThreadLocalRandom.current();
 
-	public static Optional<Location<World>> getSafeLocation(Location<World> location) {
-		TeleportHelper teleportHelper = Sponge.getGame().getTeleportHelper();
-		
-		first:
-		for(int i = 0; i < 10; i++) {
-			Optional<Location<World>> optionalLocation = teleportHelper.getSafeLocation(location);
+    public static Optional<Location<World>> getSafeLocation(Location<World> location) {
+        TeleportHelper teleportHelper = Sponge.getGame().getTeleportHelper();
 
-			if (!optionalLocation.isPresent()) {
-				continue;
-			}
-			Location<World> unsafeLocation = optionalLocation.get();
+        first:
+        for (int i = 0; i < 10; i++) {
+            Optional<Location<World>> optionalLocation = teleportHelper.getSafeLocation(location);
 
-			BlockType blockType = unsafeLocation.getBlockType();
+            if (!optionalLocation.isPresent()) {
+                continue;
+            }
+            Location<World> unsafeLocation = optionalLocation.get();
 
-			if (!blockType.equals(BlockTypes.AIR) || !unsafeLocation.getRelative(Direction.UP).getBlockType().equals(BlockTypes.AIR)) {
-				continue;
-			}
+            BlockType blockType = unsafeLocation.getBlockType();
 
-			Location<World> floorLocation = unsafeLocation.getRelative(Direction.DOWN);
-			
-			for(int i2 = 0; i2 < 3; i2++) {
-				BlockType floorBlockType = floorLocation.getBlockType();
-				
-				if (floorBlockType.equals(BlockTypes.WATER) || floorBlockType.equals(BlockTypes.LAVA) || floorBlockType.equals(BlockTypes.FLOWING_WATER) || floorBlockType.equals(BlockTypes.FLOWING_LAVA) || floorBlockType.equals(BlockTypes.FIRE)) {
-					continue first;
-				}
-				floorLocation = floorLocation.getRelative(Direction.DOWN);
-			}
+            if (!blockType.equals(BlockTypes.AIR) || !unsafeLocation.getRelative(Direction.UP).getBlockType().equals(BlockTypes.AIR)) {
+                continue;
+            }
 
-			unsafeLocation.getExtent().loadChunk(unsafeLocation.getChunkPosition(), true);
-			
-			return optionalLocation;
-		}
-		
-		return Optional.empty();
-	}
-	
-	public static Optional<Location<World>> getRandomLocation(World world) {
-		Location<World> spawnLocation = world.getSpawnLocation();
+            Location<World> floorLocation = unsafeLocation.getRelative(Direction.DOWN);
 
-		int radius = ConfigManager.get().getConfig().getNode("options", "random_spawn_radius").getInt() / 2;
+            for (int i2 = 0; i2 < 3; i2++) {
+                BlockType floorBlockType = floorLocation.getBlockType();
 
-		for(int i = 0; i < 20; i++) {
-			double x = (random.nextDouble() * (radius * 2) - radius) + spawnLocation.getBlockX();
-			double y = random.nextDouble(59, 200 + 1);
-			double z = (random.nextDouble() * (radius * 2) - radius) + spawnLocation.getBlockZ();
-			
-			Optional<Location<World>> optionalLocation = getSafeLocation(world.getLocation(x, y, z));
+                if (floorBlockType.equals(BlockTypes.WATER) || floorBlockType.equals(BlockTypes.LAVA) || floorBlockType
+                        .equals(BlockTypes.FLOWING_WATER) || floorBlockType.equals(BlockTypes.FLOWING_LAVA) || floorBlockType
+                        .equals(BlockTypes.FIRE)) {
+                    continue first;
+                }
+                floorLocation = floorLocation.getRelative(Direction.DOWN);
+            }
 
-			if (!optionalLocation.isPresent()) {
-				continue;
-			}
-			return optionalLocation;
-		}
-		
-		return Optional.empty();
-	}
+            unsafeLocation.getExtent().loadChunk(unsafeLocation.getChunkPosition(), true);
 
-	public static Consumer<CommandSource> unsafe(Location<World> location) {
-		return (CommandSource src) -> {
-			Player player = (Player) src;
-			player.setLocation(location);
-		};
-	}
+            return optionalLocation;
+        }
 
-	public static boolean teleport(Player player, Portal portal) {
-		AtomicReference<Boolean> bool = new AtomicReference<>(false);
+        return Optional.empty();
+    }
 
-		if (portal instanceof Portal.Server) {
-			Portal.Server server = (Portal.Server) portal;
+    public static Optional<Location<World>> getRandomLocation(World world) {
+        Location<World> spawnLocation = world.getSpawnLocation();
 
-			Consumer<String> consumer = (serverName) -> {
-				TeleportEvent.Server teleportEvent = new TeleportEvent.Server(player, serverName, server.getServer(), server.getPrice(), Cause.of(NamedCause.source(server)));
+        int radius = ConfigManager.get().getConfig().getNode("options", "random_spawn_radius").getInt() / 2;
 
-				if (!Sponge.getEventManager().post(teleportEvent)) {
-					SpongyCord.API.connectPlayer(player, teleportEvent.getDestination());
+        for (int i = 0; i < 20; i++) {
+            double x = (random.nextDouble() * (radius * 2) - radius) + spawnLocation.getBlockX();
+            double y = random.nextDouble(59, 200 + 1);
+            double z = (random.nextDouble() * (radius * 2) - radius) + spawnLocation.getBlockZ();
 
-					player.setLocation(player.getWorld().getSpawnLocation());
+            Optional<Location<World>> optionalLocation = getSafeLocation(world.getLocation(x, y, z));
 
-					bool.set(true);
-				}
-			};
+            if (!optionalLocation.isPresent()) {
+                continue;
+            }
+            return optionalLocation;
+        }
 
-			SpongyCord.API.getServerName(consumer, player);
-		} else {
-			Portal.Local local = (Portal.Local) portal;
+        return Optional.empty();
+    }
 
-			if(local.isBedSpawn()) {
-				Optional<Map<UUID, RespawnLocation>> optionalLocations = player.get(Keys.RESPAWN_LOCATIONS);
-				
-				if(optionalLocations.isPresent()) {
-					Map<UUID, RespawnLocation> respawnLocations = optionalLocations.get();
+    public static Consumer<CommandSource> unsafe(Location<World> location) {
+        return (CommandSource src) -> {
+            Player player = (Player) src;
+            player.setLocation(location);
+        };
+    }
 
-					if(respawnLocations.containsKey(local.getWorld().getUniqueId())) {
-						Optional<Location<World>> optionalLocation = respawnLocations.get(local.getWorld().getUniqueId()).asLocation();
-						
-						if(optionalLocation.isPresent()) {
-							Location<World> spawnLocation = optionalLocation.get();
-							
-							Local teleportEvent = new TeleportEvent.Local(player, player.getLocation(), spawnLocation, local.getPrice(), Cause.of(NamedCause.source(local)));
+    public static boolean teleport(Player player, Portal portal) {
+        AtomicReference<Boolean> bool = new AtomicReference<>(false);
 
-							if (!Sponge.getEventManager().post(teleportEvent)) {
-								spawnLocation = teleportEvent.getDestination();
+        if (portal instanceof Portal.Server) {
+            Portal.Server server = (Portal.Server) portal;
 
-								Vector3d rotation = local.getRotation().toVector3d();
+            Consumer<String> consumer = (serverName) -> {
+                TeleportEvent.Server teleportEvent =
+                        new TeleportEvent.Server(player, serverName, server.getServer(), server.getPrice(), Cause.of(NamedCause.source(server)));
 
-								player.setLocationAndRotation(spawnLocation, rotation);
+                if (!Sponge.getEventManager().post(teleportEvent)) {
+                    SpongyCord.API.connectPlayer(player, teleportEvent.getDestination());
 
-								return true;
-							}
-						}
-					}
-				}
-			}
-			
-			Optional<Location<World>> optionalSpawnLocation = local.getLocation();
+                    player.setLocation(player.getWorld().getSpawnLocation());
 
-			if (optionalSpawnLocation.isPresent()) {
-				Location<World> spawnLocation = optionalSpawnLocation.get();
+                    bool.set(true);
+                }
+            };
 
-				Local teleportEvent = new TeleportEvent.Local(player, player.getLocation(), spawnLocation, local.getPrice(), Cause.of(NamedCause.source(local)));
+            SpongyCord.API.getServerName(consumer, player);
+        } else {
+            Portal.Local local = (Portal.Local) portal;
 
-				if (!Sponge.getEventManager().post(teleportEvent)) {
-					spawnLocation = teleportEvent.getDestination();
+            if (local.isBedSpawn()) {
+                Optional<Map<UUID, RespawnLocation>> optionalLocations = player.get(Keys.RESPAWN_LOCATIONS);
 
-					Vector3d rotation = local.getRotation().toVector3d();
+                if (optionalLocations.isPresent()) {
+                    Map<UUID, RespawnLocation> respawnLocations = optionalLocations.get();
 
-					player.setLocationAndRotation(spawnLocation, rotation);
+                    if (respawnLocations.containsKey(local.getWorld().getUniqueId())) {
+                        Optional<Location<World>> optionalLocation = respawnLocations.get(local.getWorld().getUniqueId()).asLocation();
 
-					bool.set(true);
-				}
-			} else {
-				player.sendMessage(Text.of(TextColors.RED, "Could not find location"));
-			}
-		}
+                        if (optionalLocation.isPresent()) {
+                            Location<World> spawnLocation = optionalLocation.get();
 
-		return bool.get();
-	}
+                            Local teleportEvent = new TeleportEvent.Local(player, player.getLocation(), spawnLocation, local.getPrice(),
+                                    Cause.of(NamedCause.source(local)));
+
+                            if (!Sponge.getEventManager().post(teleportEvent)) {
+                                spawnLocation = teleportEvent.getDestination();
+
+                                Vector3d rotation = local.getRotation().toVector3d();
+
+                                player.setLocationAndRotation(spawnLocation, rotation);
+
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            Optional<Location<World>> optionalSpawnLocation = local.getLocation();
+
+            if (optionalSpawnLocation.isPresent()) {
+                Location<World> spawnLocation = optionalSpawnLocation.get();
+
+                Local teleportEvent =
+                        new TeleportEvent.Local(player, player.getLocation(), spawnLocation, local.getPrice(), Cause.of(NamedCause.source(local)));
+
+                if (!Sponge.getEventManager().post(teleportEvent)) {
+                    spawnLocation = teleportEvent.getDestination();
+
+                    Vector3d rotation = local.getRotation().toVector3d();
+
+                    player.setLocationAndRotation(spawnLocation, rotation);
+
+                    bool.set(true);
+                }
+            } else {
+                player.sendMessage(Text.of(TextColors.RED, "Could not find location"));
+            }
+        }
+
+        return bool.get();
+    }
 }

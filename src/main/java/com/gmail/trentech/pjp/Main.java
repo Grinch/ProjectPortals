@@ -1,22 +1,5 @@
 package com.gmail.trentech.pjp;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
-import org.slf4j.Logger;
-import org.spongepowered.api.Sponge;
-import org.spongepowered.api.command.CommandMapping;
-import org.spongepowered.api.config.ConfigDir;
-import org.spongepowered.api.event.Listener;
-import org.spongepowered.api.event.game.GameReloadEvent;
-import org.spongepowered.api.event.game.state.GameInitializationEvent;
-import org.spongepowered.api.event.game.state.GamePreInitializationEvent;
-import org.spongepowered.api.event.game.state.GameStartedServerEvent;
-import org.spongepowered.api.plugin.Dependency;
-import org.spongepowered.api.plugin.Plugin;
-import org.spongepowered.api.plugin.PluginContainer;
-
 import com.gmail.trentech.pjp.commands.CMDBack;
 import com.gmail.trentech.pjp.commands.CommandManager;
 import com.gmail.trentech.pjp.data.immutable.ImmutableHomeData;
@@ -40,211 +23,228 @@ import com.gmail.trentech.pjp.utils.Resource;
 import com.gmail.trentech.pjp.utils.SQLUtils;
 import com.gmail.trentech.pjp.utils.Timings;
 import com.google.inject.Inject;
-
 import me.flibio.updatifier.Updatifier;
 import ninja.leaping.configurate.ConfigurationNode;
+import org.slf4j.Logger;
+import org.spongepowered.api.Sponge;
+import org.spongepowered.api.command.CommandMapping;
+import org.spongepowered.api.config.ConfigDir;
+import org.spongepowered.api.event.Listener;
+import org.spongepowered.api.event.game.GameReloadEvent;
+import org.spongepowered.api.event.game.state.GameInitializationEvent;
+import org.spongepowered.api.event.game.state.GamePreInitializationEvent;
+import org.spongepowered.api.event.game.state.GameStartedServerEvent;
+import org.spongepowered.api.plugin.Dependency;
+import org.spongepowered.api.plugin.Plugin;
+import org.spongepowered.api.plugin.PluginContainer;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 @Updatifier(repoName = Resource.NAME, repoOwner = Resource.AUTHOR, version = Resource.VERSION)
-@Plugin(id = Resource.ID, name = Resource.NAME, version = Resource.VERSION, description = Resource.DESCRIPTION, authors = Resource.AUTHOR, url = Resource.URL, dependencies = { @Dependency(id = "Updatifier", optional = true), @Dependency(id = "helpme", version = "0.2.3", optional = false) })
+@Plugin(id = Resource.ID, name = Resource.NAME, version = Resource.VERSION, description = Resource.DESCRIPTION, authors = Resource.AUTHOR,
+        url = Resource.URL,
+        dependencies = {@Dependency(id = "Updatifier", optional = true), @Dependency(id = "helpme", version = "0.2.3", optional = false)})
 public class Main {
 
-	@Inject
-	@ConfigDir(sharedRoot = false)
-	private Path path;
+    @Inject
+    @ConfigDir(sharedRoot = false)
+    private Path path;
 
-	@Inject
-	private Logger log;
+    @Inject
+    private Logger log;
 
-	private static PluginContainer plugin;
-	private static Main instance;
+    private static PluginContainer plugin;
+    private static Main instance;
 
-	@Listener
-	public void onPreInitializationEvent(GamePreInitializationEvent event) {
-		plugin = Sponge.getPluginManager().getPlugin(Resource.ID).get();
-		instance = this;
+    @Listener
+    public void onPreInitializationEvent(GamePreInitializationEvent event) {
+        plugin = Sponge.getPluginManager().getPlugin(Resource.ID).get();
+        instance = this;
 
-		try {
-			Files.createDirectories(path);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
+        try {
+            Files.createDirectories(path);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
-	@Listener
-	public void onInitialization(GameInitializationEvent event) {
-		ConfigManager configManager = ConfigManager.init();
-		ConfigurationNode config = configManager.getConfig();
+    @Listener
+    public void onInitialization(GameInitializationEvent event) {
+        ConfigManager configManager = ConfigManager.init();
+        ConfigurationNode config = configManager.getConfig();
 
-		Timings timings = new Timings();
+        Timings timings = new Timings();
 
-		Sponge.getDataManager().registerBuilder(LocationSerializable.class, new LocationSerializable.Builder());
-		Sponge.getDataManager().registerBuilder(Properties.class, new Properties.Builder());
-		Sponge.getDataManager().registerContentUpdater(Portal.Local.class, new Portal.Local.Update1());
-		Sponge.getDataManager().registerBuilder(Portal.Local.class, new Portal.Local.Builder());	
-		Sponge.getDataManager().registerBuilder(Portal.Server.class, new Portal.Server.Builder());
-		
-		Sponge.getEventManager().registerListeners(this, new TeleportListener(timings));
-		
-		Sponge.getCommandManager().register(this, new CommandManager().cmdPJP, "pjp");
+        Sponge.getDataManager().registerBuilder(LocationSerializable.class, new LocationSerializable.Builder());
+        Sponge.getDataManager().registerBuilder(Properties.class, new Properties.Builder());
+        Sponge.getDataManager().registerContentUpdater(Portal.Local.class, new Portal.Local.Update1());
+        Sponge.getDataManager().registerBuilder(Portal.Local.class, new Portal.Local.Builder());
+        Sponge.getDataManager().registerBuilder(Portal.Server.class, new Portal.Server.Builder());
 
-		ConfigurationNode modules = config.getNode("settings", "modules");
-		
-		if (modules.getNode("back").getBoolean()) {
-			Sponge.getCommandManager().register(this, new CMDBack().cmdBack, "back");
-		}
-		if (modules.getNode("buttons").getBoolean()) {
-			Sponge.getEventManager().registerListeners(this, new ButtonListener(timings));
-			Sponge.getCommandManager().register(this, new CommandManager().cmdButton, "button", "b");
+        Sponge.getEventManager().registerListeners(this, new TeleportListener(timings));
 
-			getLog().info("Button module activated");
-		}
-		if (modules.getNode("doors").getBoolean()) {
-			Sponge.getEventManager().registerListeners(this, new DoorListener(timings));
-			Sponge.getCommandManager().register(this, new CommandManager().cmdDoor, "door", "d");
+        Sponge.getCommandManager().register(this, new CommandManager().cmdPJP, "pjp");
 
-			getLog().info("Door module activated");
-		}
-		if (modules.getNode("plates").getBoolean()) {
-			Sponge.getEventManager().registerListeners(this, new PlateListener(timings));
-			Sponge.getCommandManager().register(this, new CommandManager().cmdPlate, "plate", "pp");
+        ConfigurationNode modules = config.getNode("settings", "modules");
 
-			getLog().info("Pressure plate module activated");
-		}
-		if (modules.getNode("signs").getBoolean()) {
-			Sponge.getDataManager().register(SignPortalData.class, ImmutableSignPortalData.class, new SignPortalData.Builder());
-			Sponge.getEventManager().registerListeners(this, new SignListener(timings));
-			Sponge.getCommandManager().register(this, new CommandManager().cmdSign, "sign", "s");
+        if (modules.getNode("back").getBoolean()) {
+            Sponge.getCommandManager().register(this, new CMDBack().cmdBack, "back");
+        }
+        if (modules.getNode("buttons").getBoolean()) {
+            Sponge.getEventManager().registerListeners(this, new ButtonListener(timings));
+            Sponge.getCommandManager().register(this, new CommandManager().cmdButton, "button", "b");
 
-			getLog().info("Sign module activated");
-		}
-		if (modules.getNode("levers").getBoolean()) {
-			Sponge.getEventManager().registerListeners(this, new LeverListener(timings));
-			Sponge.getCommandManager().register(this, new CommandManager().cmdLever, "lever", "l");
+            getLog().info("Button module activated");
+        }
+        if (modules.getNode("doors").getBoolean()) {
+            Sponge.getEventManager().registerListeners(this, new DoorListener(timings));
+            Sponge.getCommandManager().register(this, new CommandManager().cmdDoor, "door", "d");
 
-			getLog().info("Lever module activated");
-		}
-		
-		if (modules.getNode("portals").getBoolean()) {
-			Sponge.getEventManager().registerListeners(this, new PortalListener(timings));
-			Sponge.getCommandManager().register(this, new CommandManager().cmdPortal, "portal", "p");
+            getLog().info("Door module activated");
+        }
+        if (modules.getNode("plates").getBoolean()) {
+            Sponge.getEventManager().registerListeners(this, new PlateListener(timings));
+            Sponge.getCommandManager().register(this, new CommandManager().cmdPlate, "plate", "pp");
 
-			if (config.getNode("options", "portal", "legacy_builder").getBoolean()) {
-				Sponge.getEventManager().registerListeners(this, new LegacyListener(timings));
-			}
+            getLog().info("Pressure plate module activated");
+        }
+        if (modules.getNode("signs").getBoolean()) {
+            Sponge.getDataManager().register(SignPortalData.class, ImmutableSignPortalData.class, new SignPortalData.Builder());
+            Sponge.getEventManager().registerListeners(this, new SignListener(timings));
+            Sponge.getCommandManager().register(this, new CommandManager().cmdSign, "sign", "s");
 
-			getLog().info("Portal module activated");
-		}
-		
-		if (modules.getNode("homes").getBoolean()) {
-			Sponge.getDataManager().register(HomeData.class, ImmutableHomeData.class, new HomeData.Builder());
-			Sponge.getCommandManager().register(this, new CommandManager().cmdHome, "home", "h");
+            getLog().info("Sign module activated");
+        }
+        if (modules.getNode("levers").getBoolean()) {
+            Sponge.getEventManager().registerListeners(this, new LeverListener(timings));
+            Sponge.getCommandManager().register(this, new CommandManager().cmdLever, "lever", "l");
 
-			getLog().info("Home module activated");
-		}
-		if (modules.getNode("warps").getBoolean()) {
-			Sponge.getCommandManager().register(this, new CommandManager().cmdWarp, "warp", "w");
+            getLog().info("Lever module activated");
+        }
 
-			getLog().info("Warp module activated");
-		}
+        if (modules.getNode("portals").getBoolean()) {
+            Sponge.getEventManager().registerListeners(this, new PortalListener(timings));
+            Sponge.getCommandManager().register(this, new CommandManager().cmdPortal, "portal", "p");
 
-		CommandHelp.init(modules);
-		
-		SQLUtils.createTables();
-	}
+            if (config.getNode("options", "portal", "legacy_builder").getBoolean()) {
+                Sponge.getEventManager().registerListeners(this, new LegacyListener(timings));
+            }
 
-	@Listener
-	public void onStartedServer(GameStartedServerEvent event) {
-		Portal.init();
-	}
+            getLog().info("Portal module activated");
+        }
 
-	@Listener
-	public void onReloadEvent(GameReloadEvent event) {
-		Sponge.getEventManager().unregisterPluginListeners(getPlugin());
+        if (modules.getNode("homes").getBoolean()) {
+            Sponge.getDataManager().register(HomeData.class, ImmutableHomeData.class, new HomeData.Builder());
+            Sponge.getCommandManager().register(this, new CommandManager().cmdHome, "home", "h");
 
-		for (CommandMapping mapping : Sponge.getCommandManager().getOwnedBy(getPlugin())) {
-			Sponge.getCommandManager().removeMapping(mapping);
-		}
+            getLog().info("Home module activated");
+        }
+        if (modules.getNode("warps").getBoolean()) {
+            Sponge.getCommandManager().register(this, new CommandManager().cmdWarp, "warp", "w");
 
-		ConfigManager configManager = ConfigManager.init();
-		ConfigurationNode config = configManager.getConfig();
+            getLog().info("Warp module activated");
+        }
 
-		Timings timings = new Timings();
+        CommandHelp.init(modules);
 
-		Sponge.getEventManager().registerListeners(this, new TeleportListener(timings));
+        SQLUtils.createTables();
+    }
 
-		Sponge.getCommandManager().register(this, new CMDBack().cmdBack, "back");
-		Sponge.getCommandManager().register(this, new CommandManager().cmdPJP, "pjp");
+    @Listener
+    public void onStartedServer(GameStartedServerEvent event) {
+        Portal.init();
+    }
 
-		ConfigurationNode modules = config.getNode("settings", "modules");
+    @Listener
+    public void onReloadEvent(GameReloadEvent event) {
+        Sponge.getEventManager().unregisterPluginListeners(getPlugin());
 
-		if (modules.getNode("portals").getBoolean()) {
-			Sponge.getEventManager().registerListeners(this, new PortalListener(timings));
-			Sponge.getCommandManager().register(this, new CommandManager().cmdPortal, "portal", "p");
+        for (CommandMapping mapping : Sponge.getCommandManager().getOwnedBy(getPlugin())) {
+            Sponge.getCommandManager().removeMapping(mapping);
+        }
 
-			if (config.getNode("options", "portal", "legacy_builder").getBoolean()) {
-				Sponge.getEventManager().registerListeners(this, new LegacyListener(timings));
-			}
+        ConfigManager configManager = ConfigManager.init();
+        ConfigurationNode config = configManager.getConfig();
 
-			getLog().info("Portal module activated");
-		}
-		if (modules.getNode("buttons").getBoolean()) {
-			Sponge.getEventManager().registerListeners(this, new ButtonListener(timings));
-			Sponge.getCommandManager().register(this, new CommandManager().cmdButton, "button", "b");
+        Timings timings = new Timings();
 
-			getLog().info("Button module activated");
-		}
-		if (modules.getNode("doors").getBoolean()) {
-			Sponge.getEventManager().registerListeners(this, new DoorListener(timings));
-			Sponge.getCommandManager().register(this, new CommandManager().cmdDoor, "door", "d");
+        Sponge.getEventManager().registerListeners(this, new TeleportListener(timings));
 
-			getLog().info("Door module activated");
-		}
-		if (modules.getNode("plates").getBoolean()) {
-			Sponge.getEventManager().registerListeners(this, new PlateListener(timings));
-			Sponge.getCommandManager().register(this, new CommandManager().cmdPlate, "plate", "pp");
+        Sponge.getCommandManager().register(this, new CMDBack().cmdBack, "back");
+        Sponge.getCommandManager().register(this, new CommandManager().cmdPJP, "pjp");
 
-			getLog().info("Pressure plate module activated");
-		}
-		if (modules.getNode("signs").getBoolean()) {
-			Sponge.getEventManager().registerListeners(this, new SignListener(timings));
-			Sponge.getCommandManager().register(this, new CommandManager().cmdSign, "sign", "s");
+        ConfigurationNode modules = config.getNode("settings", "modules");
 
-			getLog().info("Sign module activated");
-		}
-		if (modules.getNode("levers").getBoolean()) {
-			Sponge.getEventManager().registerListeners(this, new LeverListener(timings));
-			Sponge.getCommandManager().register(this, new CommandManager().cmdLever, "lever", "l");
+        if (modules.getNode("portals").getBoolean()) {
+            Sponge.getEventManager().registerListeners(this, new PortalListener(timings));
+            Sponge.getCommandManager().register(this, new CommandManager().cmdPortal, "portal", "p");
 
-			getLog().info("Lever module activated");
-		}
-		if (modules.getNode("homes").getBoolean()) {
-			Sponge.getCommandManager().register(this, new CommandManager().cmdHome, "home", "h");
+            if (config.getNode("options", "portal", "legacy_builder").getBoolean()) {
+                Sponge.getEventManager().registerListeners(this, new LegacyListener(timings));
+            }
 
-			getLog().info("Home module activated");
-		}
-		if (modules.getNode("warps").getBoolean()) {
-			Sponge.getCommandManager().register(this, new CommandManager().cmdWarp, "warp", "w");
+            getLog().info("Portal module activated");
+        }
+        if (modules.getNode("buttons").getBoolean()) {
+            Sponge.getEventManager().registerListeners(this, new ButtonListener(timings));
+            Sponge.getCommandManager().register(this, new CommandManager().cmdButton, "button", "b");
 
-			getLog().info("Warp module activated");
-		}
+            getLog().info("Button module activated");
+        }
+        if (modules.getNode("doors").getBoolean()) {
+            Sponge.getEventManager().registerListeners(this, new DoorListener(timings));
+            Sponge.getCommandManager().register(this, new CommandManager().cmdDoor, "door", "d");
 
-		Portal.init();
-	}
+            getLog().info("Door module activated");
+        }
+        if (modules.getNode("plates").getBoolean()) {
+            Sponge.getEventManager().registerListeners(this, new PlateListener(timings));
+            Sponge.getCommandManager().register(this, new CommandManager().cmdPlate, "plate", "pp");
 
-	public Logger getLog() {
-		return log;
-	}
+            getLog().info("Pressure plate module activated");
+        }
+        if (modules.getNode("signs").getBoolean()) {
+            Sponge.getEventManager().registerListeners(this, new SignListener(timings));
+            Sponge.getCommandManager().register(this, new CommandManager().cmdSign, "sign", "s");
 
-	public Path getPath() {
-		return path;
-	}
+            getLog().info("Sign module activated");
+        }
+        if (modules.getNode("levers").getBoolean()) {
+            Sponge.getEventManager().registerListeners(this, new LeverListener(timings));
+            Sponge.getCommandManager().register(this, new CommandManager().cmdLever, "lever", "l");
 
-	public static PluginContainer getPlugin() {
-		return plugin;
-	}
+            getLog().info("Lever module activated");
+        }
+        if (modules.getNode("homes").getBoolean()) {
+            Sponge.getCommandManager().register(this, new CommandManager().cmdHome, "home", "h");
 
-	public static Main instance() {
-		return instance;
-	}
+            getLog().info("Home module activated");
+        }
+        if (modules.getNode("warps").getBoolean()) {
+            Sponge.getCommandManager().register(this, new CommandManager().cmdWarp, "warp", "w");
+
+            getLog().info("Warp module activated");
+        }
+
+        Portal.init();
+    }
+
+    public Logger getLog() {
+        return log;
+    }
+
+    public Path getPath() {
+        return path;
+    }
+
+    public static PluginContainer getPlugin() {
+        return plugin;
+    }
+
+    public static Main instance() {
+        return instance;
+    }
 
 }

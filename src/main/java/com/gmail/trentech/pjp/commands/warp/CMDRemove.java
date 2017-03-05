@@ -1,5 +1,7 @@
 package com.gmail.trentech.pjp.commands.warp;
 
+import com.gmail.trentech.helpme.help.Help;
+import com.gmail.trentech.pjp.portal.Portal;
 import org.spongepowered.api.command.CommandException;
 import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.CommandSource;
@@ -9,23 +11,21 @@ import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.action.TextActions;
 import org.spongepowered.api.text.format.TextColors;
 
-import com.gmail.trentech.helpme.help.Help;
-import com.gmail.trentech.pjp.portal.Portal;
-
 public class CMDRemove implements CommandExecutor {
 
-	@Override
-	public CommandResult execute(CommandSource src, CommandContext args) throws CommandException {
-		if (!args.hasAny("name")) {
-			Help help = Help.get("warp remove").get();
-			throw new CommandException(Text.builder().onClick(TextActions.executeCallback(help.execute())).append(help.getUsageText()).build(), false);
-		}
-		Portal portal = args.<Portal>getOne("name").get();
+    @Override
+    public CommandResult execute(CommandSource src, CommandContext args) throws CommandException {
+        if (!args.hasAny("name")) {
+            Help help = Help.get("warp remove").get();
+            throw new CommandException(Text.builder().onClick(TextActions.executeCallback(help.execute())).append(help.getUsageText()).build(),
+                    false);
+        }
+        Portal portal = args.<Portal>getOne("name").get();
 
-		portal.remove();
+        portal.remove();
 
-		src.sendMessage(Text.of(TextColors.DARK_GREEN, "Warp ", portal.getName(), " removed"));
+        src.sendMessage(Text.of(TextColors.DARK_GREEN, "Warp ", portal.getName(), " removed"));
 
-		return CommandResult.success();
-	}
+        return CommandResult.success();
+    }
 }

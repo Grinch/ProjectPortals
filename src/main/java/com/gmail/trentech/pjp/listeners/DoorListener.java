@@ -1,11 +1,11 @@
 package com.gmail.trentech.pjp.listeners;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-
+import com.gmail.trentech.pjp.Main;
+import com.gmail.trentech.pjp.portal.Portal;
+import com.gmail.trentech.pjp.portal.Portal.PortalType;
+import com.gmail.trentech.pjp.utils.ConfigManager;
+import com.gmail.trentech.pjp.utils.Teleport;
+import com.gmail.trentech.pjp.utils.Timings;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.block.BlockSnapshot;
 import org.spongepowered.api.data.Transaction;
@@ -22,142 +22,143 @@ import org.spongepowered.api.text.format.TextColors;
 import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
 
-import com.gmail.trentech.pjp.Main;
-import com.gmail.trentech.pjp.portal.Portal;
-import com.gmail.trentech.pjp.portal.Portal.PortalType;
-import com.gmail.trentech.pjp.utils.ConfigManager;
-import com.gmail.trentech.pjp.utils.Teleport;
-import com.gmail.trentech.pjp.utils.Timings;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class DoorListener {
 
-	public static ConcurrentHashMap<UUID, Portal> builders = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<UUID, Portal> builders = new ConcurrentHashMap<>();
 
-	private Timings timings;
+    private Timings timings;
 
-	public DoorListener(Timings timings) {
-		this.timings = timings;
-	}
+    public DoorListener(Timings timings) {
+        this.timings = timings;
+    }
 
-	@Listener
-	public void onChangeBlockEventBreak(ChangeBlockEvent.Break event, @Root Player player) {
-		timings.onChangeBlockEventBreak().startTiming();
+    @Listener
+    public void onChangeBlockEventBreak(ChangeBlockEvent.Break event, @Root Player player) {
+        timings.onChangeBlockEventBreak().startTiming();
 
-		try {
-			for (Transaction<BlockSnapshot> transaction : event.getTransactions()) {
-				Location<World> location = transaction.getFinal().getLocation().get();
+        try {
+            for (Transaction<BlockSnapshot> transaction : event.getTransactions()) {
+                Location<World> location = transaction.getFinal().getLocation().get();
 
-				Optional<Portal> optionalPortal = Portal.get(location, PortalType.DOOR);
+                Optional<Portal> optionalPortal = Portal.get(location, PortalType.DOOR);
 
-				if (!optionalPortal.isPresent()) {
-					continue;
-				}
-				Portal portal = optionalPortal.get();
+                if (!optionalPortal.isPresent()) {
+                    continue;
+                }
+                Portal portal = optionalPortal.get();
 
-				if (!player.hasPermission("pjp.door.break")) {
-					player.sendMessage(Text.of(TextColors.DARK_RED, "you do not have permission to break door portals"));
-					event.setCancelled(true);
-				} else {
-					portal.remove();
-					player.sendMessage(Text.of(TextColors.DARK_GREEN, "Broke door portal"));
-				}
-			}
-		} finally {
-			timings.onChangeBlockEventBreak().stopTiming();
-		}
-	}
+                if (!player.hasPermission("pjp.door.break")) {
+                    player.sendMessage(Text.of(TextColors.DARK_RED, "you do not have permission to break door portals"));
+                    event.setCancelled(true);
+                } else {
+                    portal.remove();
+                    player.sendMessage(Text.of(TextColors.DARK_GREEN, "Broke door portal"));
+                }
+            }
+        } finally {
+            timings.onChangeBlockEventBreak().stopTiming();
+        }
+    }
 
-	@Listener(order = Order.POST)
-	public void onChangeBlockEventPlace(ChangeBlockEvent.Place event, @Root Player player) {
-		timings.onChangeBlockEventPlace().startTiming();
+    @Listener(order = Order.POST)
+    public void onChangeBlockEventPlace(ChangeBlockEvent.Place event, @Root Player player) {
+        timings.onChangeBlockEventPlace().startTiming();
 
-		try {
-			if (!builders.containsKey(player.getUniqueId())) {
-				return;
-			}
+        try {
+            if (!builders.containsKey(player.getUniqueId())) {
+                return;
+            }
 
-			for (Transaction<BlockSnapshot> transaction : event.getTransactions()) {
-				Location<World> location = transaction.getFinal().getLocation().get();
+            for (Transaction<BlockSnapshot> transaction : event.getTransactions()) {
+                Location<World> location = transaction.getFinal().getLocation().get();
 
-				Optional<Boolean> optionalOpen = location.get(Keys.OPEN);
-				
-				if(!optionalOpen.isPresent()) {
-					continue;
-				}				
-				
-				if (!player.hasPermission("pjp.door.place")) {
-					player.sendMessage(Text.of(TextColors.DARK_RED, "you do not have permission to place door portals"));
-					builders.remove(player.getUniqueId());
-					event.setCancelled(true);
-					return;
-				}
+                Optional<Boolean> optionalOpen = location.get(Keys.OPEN);
 
-				Portal portal = builders.get(player.getUniqueId());
-				portal.create(location);
+                if (!optionalOpen.isPresent()) {
+                    continue;
+                }
 
-				player.sendMessage(Text.of(TextColors.DARK_GREEN, "New door portal created"));
+                if (!player.hasPermission("pjp.door.place")) {
+                    player.sendMessage(Text.of(TextColors.DARK_RED, "you do not have permission to place door portals"));
+                    builders.remove(player.getUniqueId());
+                    event.setCancelled(true);
+                    return;
+                }
 
-				builders.remove(player.getUniqueId());
-				break;
-			}
-		} finally {
-			timings.onChangeBlockEventPlace().stopTiming();
-		}
-	}
+                Portal portal = builders.get(player.getUniqueId());
+                portal.create(location);
 
-	private static List<UUID> cache = new ArrayList<>();
+                player.sendMessage(Text.of(TextColors.DARK_GREEN, "New door portal created"));
 
-	@Listener
-	public void onMoveEntityEventPlayer(MoveEntityEvent event, @Getter("getTargetEntity") Player player) {
-		timings.onMoveEntityEvent().startTimingIfSync();
+                builders.remove(player.getUniqueId());
+                break;
+            }
+        } finally {
+            timings.onChangeBlockEventPlace().stopTiming();
+        }
+    }
 
-		try {
-			Location<World> location = player.getLocation();
+    private static List<UUID> cache = new ArrayList<>();
 
-			Optional<Boolean> optionalOpen = location.get(Keys.OPEN);
-			
-			if(!optionalOpen.isPresent()) {
-				return;
-			}
-			
-			if(!optionalOpen.get()) {
-				return;
-			}
-			
-			Optional<Portal> optionalPortal = Portal.get(location, PortalType.DOOR);
+    @Listener
+    public void onMoveEntityEventPlayer(MoveEntityEvent event, @Getter("getTargetEntity") Player player) {
+        timings.onMoveEntityEvent().startTimingIfSync();
 
-			if (!optionalPortal.isPresent()) {
-				return;
-			}
-			Portal portal = optionalPortal.get();
+        try {
+            Location<World> location = player.getLocation();
 
-			if (ConfigManager.get().getConfig().getNode("options", "advanced_permissions").getBoolean()) {
-				if (!player.hasPermission("pjp.door." + location.getExtent().getName() + "_" + location.getBlockX() + "_" + location.getBlockY() + "_" + location.getBlockZ())) {
-					player.sendMessage(Text.of(TextColors.DARK_RED, "You do not have permission to use this door portal"));
-					return;
-				}
-			} else {
-				if (!player.hasPermission("pjp.door.interact")) {
-					player.sendMessage(Text.of(TextColors.DARK_RED, "you do not have permission to interact with door portals"));
-					return;
-				}
-			}
+            Optional<Boolean> optionalOpen = location.get(Keys.OPEN);
 
-			UUID uuid = player.getUniqueId();
+            if (!optionalOpen.isPresent()) {
+                return;
+            }
 
-			if (cache.contains(uuid)) {
-				return;
-			}
+            if (!optionalOpen.get()) {
+                return;
+            }
 
-			cache.add(uuid);
+            Optional<Portal> optionalPortal = Portal.get(location, PortalType.DOOR);
 
-			Teleport.teleport(player, portal);
+            if (!optionalPortal.isPresent()) {
+                return;
+            }
+            Portal portal = optionalPortal.get();
 
-			Sponge.getScheduler().createTaskBuilder().delayTicks(20).execute(c -> {
-				cache.remove(uuid);
-			}).submit(Main.getPlugin());
-		} finally {
-			timings.onMoveEntityEvent().stopTiming();
-		}
-	}
+            if (ConfigManager.get().getConfig().getNode("options", "advanced_permissions").getBoolean()) {
+                if (!player.hasPermission(
+                        "pjp.door." + location.getExtent().getName() + "_" + location.getBlockX() + "_" + location.getBlockY() + "_" + location
+                                .getBlockZ())) {
+                    player.sendMessage(Text.of(TextColors.DARK_RED, "You do not have permission to use this door portal"));
+                    return;
+                }
+            } else {
+                if (!player.hasPermission("pjp.door.interact")) {
+                    player.sendMessage(Text.of(TextColors.DARK_RED, "you do not have permission to interact with door portals"));
+                    return;
+                }
+            }
+
+            UUID uuid = player.getUniqueId();
+
+            if (cache.contains(uuid)) {
+                return;
+            }
+
+            cache.add(uuid);
+
+            Teleport.teleport(player, portal);
+
+            Sponge.getScheduler().createTaskBuilder().delayTicks(20).execute(c -> {
+                cache.remove(uuid);
+            }).submit(Main.getPlugin());
+        } finally {
+            timings.onMoveEntityEvent().stopTiming();
+        }
+    }
 }
